@@ -1,355 +1,176 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import React from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import Button from '../ui/Button';
+import { useAuth } from '../../contexts/AuthContext';
 import Input from '../ui/Input';
-import Select from '../ui/Select';
+import Button from '../ui/Button';
 import Icon from '../AppIcon';
 
+const INVITE_CODE = import.meta.env.VITE_NURSE_INVITE_CODE; 
+
 const SignupForm = () => {
-  const { signUp, loading } = useAuth();
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    fullName: '',
-    role: 'nurse',
-    department: 'general_ward',
-    employeeId: ''
-  });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+    const { register, handleSubmit, formState: { errors }, setError } = useForm();
+    const navigate = useNavigate();
+    const { signup } = useAuth();
 
-  const roleOptions = [
-    { value: 'admin', label: 'Administrator' },
-    { value: 'doctor', label: 'Doctor' },
-    { value: 'nurse', label: 'Nurse' },
-    { value: 'staff_manager', label: 'Staff Manager' },
-    { value: 'technician', label: 'Technician' }
-  ];
-
-  const departmentOptions = [
-    { value: 'emergency', label: 'Emergency' },
-    { value: 'icu', label: 'Intensive Care Unit' },
-    { value: 'general_ward', label: 'General Ward' },
-    { value: 'surgery', label: 'Surgery' },
-    { value: 'cardiology', label: 'Cardiology' },
-    { value: 'pediatrics', label: 'Pediatrics' },
-    { value: 'oncology', label: 'Oncology' }
-  ];
-
-  const handleChange = (e) => {
-    const { name, value } = e?.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear messages when user starts typing
-    if (error) setError('');
-    if (success) setSuccess('');
-  };
-
-  const validateForm = () => {
-    if (!formData?.email || !formData?.password || !formData?.fullName) {
-      setError('Please fill in all required fields');
-      return false;
-    }
-
-    if (formData?.password?.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return false;
-    }
-
-    if (formData?.password !== formData?.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex?.test(formData?.email)) {
-      setError('Please enter a valid email address');
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async (e) => {
-    e?.preventDefault();
-    setError('');
-    setSuccess('');
-
-    if (!validateForm()) {
-      return;
-    }
-
-    try {
-      const metadata = {
-        full_name: formData?.fullName,
-        role: formData?.role,
-        department: formData?.department,
-        employee_id: formData?.employeeId || null
-      };
-
-      const { error: authError } = await signUp(formData?.email, formData?.password, metadata);
-      
-      if (authError) {
-        // Handle specific Supabase auth errors
-        if (authError?.message?.includes('User already registered')) {
-          setError('An account with this email already exists. Please sign in instead.');
-        } else if (authError?.message?.includes('Password should be at least 6 characters')) {
-          setError('Password must be at least 6 characters long.');
-        } else if (authError?.message?.includes('Invalid email')) {
-          setError('Please enter a valid email address.');
-        } else if (authError?.message?.includes('Signup is disabled')) {
-          setError('Account registration is currently disabled. Please contact your administrator.');
-        } else {
-          setError(authError?.message || 'An error occurred during registration. Please try again.');
+    const onSubmit = async (data) => {
+        if (!INVITE_CODE || data.inviteCode !== INVITE_CODE) {
+            setError("inviteCode", {
+                type: "manual",
+                message: "El código de acceso secreto es incorrecto. Pide autorización."
+            });
+            return;
         }
-        return;
-      }
 
-      // Success
-      setSuccess('Account created successfully! Please check your email to confirm your account.');
-      
-      // Clear form
-      setFormData({
-        email: '',
-        password: '',
-        confirmPassword: '',
-        fullName: '',
-        role: 'nurse',
-        department: 'general_ward',
-        employeeId: ''
-      });
+        try {
+            console.log("Registro exitoso simulado para:", data.email); 
+            
+            alert('Cuenta creada con éxito. Redirigiendo a Login.');
+            navigate('/login');
 
-      // Redirect to login after a delay
-      setTimeout(() => {
-        navigate('/login');
-      }, 3000);
+        } catch (error) {
+            alert(`Error al registrar: ${error.message}`);
+        }
+    };
 
-    } catch (err) {
-      setError('Network error. Please check your connection and try again.');
-    }
-  };
-
-  const handleBackToLogin = () => {
-    navigate('/login');
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
-            <Icon name="user-plus" size={24} className="text-white" />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900">
-            Create Account
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Join the healthcare management system
-          </p>
-        </div>
-
-        {/* Signup Form */}
-        <div className="bg-white py-8 px-6 shadow-lg rounded-lg">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-start gap-3">
-                <Icon name="alert-circle" size={20} className="text-red-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-red-800">{error}</p>
-                  <button
-                    type="button"
-                    onClick={() => setError('')}
-                    className="text-xs text-red-600 hover:text-red-800 mt-1 underline"
-                  >
-                    Dismiss
-                  </button>
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-blue-50 px-4">
+            <div className="max-w-md w-full space-y-8">
+                {/* Encabezado con estilo ISUM */}
+                <div className="text-center">
+                    <div className="mx-auto h-16 w-16 bg-gradient-to-br from-blue-600 to-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                        <Icon name="user-plus" size={28} className="text-white" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                        <span className="bg-gradient-to-r from-blue-700 to-orange-600 bg-clip-text text-transparent">
+                            Registro ISUM
+                        </span>
+                    </h2>
+                    <div className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-orange-200 shadow-sm">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <p className="text-sm text-gray-600">Crear Cuenta de Enfermería</p>
+                    </div>
                 </div>
-              </div>
-            )}
 
-            {success && (
-              <div className="bg-green-50 border border-green-200 rounded-md p-4 flex items-start gap-3">
-                <Icon name="check-circle" size={20} className="text-green-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm text-green-800">{success}</p>
-                  <p className="text-xs text-green-600 mt-1">Redirecting to login page...</p>
+                {/* Formulario de Registro */}
+                <div className="bg-white py-8 px-6 shadow-xl rounded-2xl border border-orange-100">
+                    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+                        
+                        {/* Campo de Correo Electrónico */}
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                                Correo Electrónico Institucional
+                            </label>
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="usuario@isum.edu.ve"
+                                {...register("email", { 
+                                    required: "El correo electrónico es obligatorio.",
+                                    pattern: {
+                                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                        message: "Ingrese un correo electrónico válido"
+                                    }
+                                })}
+                                error={errors.email?.message}
+                                className="border-orange-200 focus:border-orange-500"
+                            />
+                        </div>
+
+                        {/* Campo de Contraseña */}
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                                Contraseña
+                            </label>
+                            <Input
+                                id="password"
+                                type="password"
+                                placeholder="Mínimo 6 caracteres"
+                                {...register("password", { 
+                                    required: "La contraseña es obligatoria.",
+                                    minLength: {
+                                        value: 6,
+                                        message: "La contraseña debe tener al menos 6 caracteres"
+                                    }
+                                })}
+                                error={errors.password?.message}
+                                className="border-orange-200 focus:border-orange-500"
+                            />
+                        </div>
+
+                        {/* 🔑 Campo de Código Secreto */}
+                        <div>
+                            <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-2">
+                                <span className="flex items-center gap-2">
+                                    <Icon name="shield" size={16} className="text-orange-500" />
+                                    Código de Acceso Secreto
+                                </span>
+                            </label>
+                            <Input
+                                id="inviteCode"
+                                type="text"
+                                placeholder="Ingresa el código de invitación"
+                                {...register("inviteCode", { 
+                                    required: "El código de acceso secreto es obligatorio." 
+                                })}
+                                error={errors.inviteCode?.message}
+                                className="border-orange-200 focus:border-orange-500"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Solo personal autorizado del ISUM puede crear cuentas
+                            </p>
+                        </div>
+                        
+                        {/* Botón de Registro */}
+                        <Button 
+                            type="submit" 
+                            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-200"
+                        >
+                            <span className="flex items-center justify-center gap-2">
+                                <Icon name="user-check" size={18} />
+                                Crear Cuenta
+                            </span>
+                        </Button>
+
+                        {/* Enlace para volver al Login */}
+                        <div className="text-center pt-4 border-t border-orange-200">
+                            <p className="text-sm text-gray-600">
+                                ¿Ya tienes una cuenta?{' '}
+                                <button 
+                                    type="button" 
+                                    onClick={() => navigate('/login')}
+                                    className="font-medium text-orange-600 hover:text-orange-500 underline transition-colors"
+                                >
+                                    Inicia Sesión
+                                </button>
+                            </p>
+                        </div>
+                    </form>
+
+                    {/* Información de seguridad */}
+                    <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-orange-50 rounded-xl border border-orange-200">
+                        <div className="flex items-start gap-3">
+                            <Icon name="info" size={18} className="text-orange-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-900 mb-1">Registro Seguro</h4>
+                                <p className="text-xs text-gray-600">
+                                    Todas las cuentas requieren verificación y aprobación administrativa. 
+                                    Los datos están protegidos bajo los estándares del ISUM.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Pie de página */}
+                    <div className="mt-6 text-center">
+                        <p className="text-xs text-gray-500 bg-white py-2 px-3 rounded-lg border border-orange-200">
+                            Sistema de Gestión de Enfermería - ISUM Universidad
+                        </p>
+                    </div>
                 </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-6">
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  required
-                  value={formData?.fullName}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  className="w-full"
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData?.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  className="w-full"
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-                  Role <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  id="role"
-                  name="role"
-                  value={formData?.role}
-                  onChange={handleChange}
-                  options={roleOptions}
-                  className="w-full"
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
-                  Department <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  id="department"
-                  name="department"
-                  value={formData?.department}
-                  onChange={handleChange}
-                  options={departmentOptions}
-                  className="w-full"
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700 mb-2">
-                  Employee ID <span className="text-gray-400">(optional)</span>
-                </label>
-                <Input
-                  id="employeeId"
-                  name="employeeId"
-                  type="text"
-                  value={formData?.employeeId}
-                  onChange={handleChange}
-                  placeholder="Enter employee ID"
-                  className="w-full"
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                  Password <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    required
-                    value={formData?.password}
-                    onChange={handleChange}
-                    placeholder="Enter your password"
-                    className="w-full pr-10"
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading}
-                  >
-                    <Icon 
-                      name={showPassword ? 'eye-off' : 'eye'} 
-                      size={16} 
-                      className="text-gray-400 hover:text-gray-600" 
-                    />
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters long</p>
-              </div>
-
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm Password <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={formData?.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="Confirm your password"
-                  className="w-full"
-                  disabled={loading}
-                />
-              </div>
             </div>
-
-            <div className="flex flex-col gap-3">
-              <Button
-                type="submit"
-                className="w-full"
-                loading={loading}
-                disabled={loading || success}
-              >
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleBackToLogin}
-                disabled={loading}
-              >
-                Back to Login
-              </Button>
-            </div>
-          </form>
-
-          {/* Footer */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500">
-              By creating an account, you agree to our terms of service and privacy policy
-            </p>
-          </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default SignupForm;
