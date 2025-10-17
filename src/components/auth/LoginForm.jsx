@@ -63,7 +63,8 @@ const LoginForm = () => {
         return;
       }
 
-      navigate('/patient-care-overview');
+      // 🎯 REDIRECCIÓN AL NUEVO DASHBOARD DE ENFERMERÍA
+      navigate('/dashboard-enfermeria');
     } catch (err) {
       setError('Error de conexión. Por favor verifique su conexión e intente nuevamente.');
     }
@@ -81,7 +82,8 @@ const LoginForm = () => {
         return;
       }
 
-      navigate('/patient-care-overview');
+      // 🎯 REDIRECCIÓN AL NUEVO DASHBOARD DE ENFERMERÍA
+      navigate('/dashboard-enfermeria');
     } catch (err) {
       setError('Error de conexión durante el inicio de sesión demo. Por favor intente nuevamente.');
     }
@@ -111,15 +113,15 @@ const LoginForm = () => {
     console.log('✅ Usuario simulado guardado en localStorage');
     
     // 🎯 MÚLTIPLES MÉTODOS DE REDIRECCIÓN
-    console.log('🚀 Intentando redirección a patient-care-overview');
+    console.log('🚀 Intentando redirección a dashboard-enfermeria');
     
     // Método 1: Navegación normal
-    navigate('/patient-care-overview');
+    navigate('/dashboard-enfermeria');
     
     // Método 2: Forzar recarga después de un delay
     setTimeout(() => {
       console.log('🔄 Forzando recarga de la página...');
-      window.location.href = '/patient-care-overview';
+      window.location.href = '/dashboard-enfermeria';
     }, 100);
     
     // Método 3: Recarga completa como fallback
