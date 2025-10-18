@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Layout from './Layout';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -148,7 +147,7 @@ const NuevaConsulta = () => {
   };
 
   return (
-    <Layout>
+
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-blue-50 p-6">
         <div className="max-w-4xl mx-auto">
           {/* HEADER */}
@@ -391,7 +390,6 @@ const NuevaConsulta = () => {
           </div>
         </div>
       </div>
-    </Layout>
   );
 };
 

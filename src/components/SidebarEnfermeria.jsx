@@ -10,7 +10,7 @@ const SidebarEnfermeria = () => {
   const menuItems = [
     { label: '🏠 Inicio', path: '/dashboard-enfermeria', icon: 'home' },
     { label: '📝 Nueva Consulta', path: '/nueva-consulta', icon: 'plus-circle' },
-    { label: '👥 Estudiantes', path: '/estudiantes', icon: 'users' },
+    { label: '👥 Expedientes', path: '/expedientes', icon: 'users' },
     { label: '📅 Consultas Hoy', path: '/consultas-hoy', icon: 'calendar' },
     { label: '💊 Inventario', path: '/inventario', icon: 'package' },
     { label: '📊 Reportes', path: '/reportes', icon: 'bar-chart-3' },
