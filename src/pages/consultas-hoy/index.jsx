@@ -1,5 +1,6 @@
+// src/pages/consultas-hoy/index.jsx (o el nombre correcto)
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import api from "../../services/api"; // Importamos Axios
 import Icon from "../../components/AppIcon";
 import Button from "../../components/ui/Button";
 import AtenderModal from "./components/AtenderModal"; // opcional
@@ -10,43 +11,33 @@ const ConsultasHoy = () => {
   const [filtro, setFiltro] = useState("todas"); // todas | en_espera | urgente
   const [modal, setModal] = useState(null); // { id, nombre }
 
-  const hoy = new Date().toISOString().split("T")[0];
-
   useEffect(() => {
     cargarConsultas();
   }, [filtro]);
 
   const cargarConsultas = async () => {
     setLoading(true);
-    let query = supabase
-      .from("consultas")
-      .select(
-        `
-        *,
-        estudiantes (
-          nombre,
-          apellido,
-          ci,
-          carnet,
-          carrera
-        )
-      `
-      )
-      .eq("fecha", hoy)
-      .order("hora_llegada", { ascending: true });
-
-    if (filtro === "en_espera") query = query.eq("estado", "en_espera");
-    if (filtro === "urgente") query = query.eq("prioridad", "urgente");
-
-    const { data, error } = await query;
-    if (!error) setConsultas(data);
-    setLoading(false);
+    try {
+      // Llamamos a un único endpoint que trae todo lo necesario, incluyendo fecha de hoy
+      const res = await api.get(`/api/consultas/dia?filtro=${filtro}`);
+      setConsultas(res.data || []);
+    } catch (error) {
+      console.error("Error cargando consultas:", error);
+      setConsultas([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const marcarAtendido = async (id) => {
-    await supabase.from("consultas").update({ estado: "atendido" }).eq("id", id);
-    cargarConsultas();
-    setModal(null);
+    try {
+      // Llama al endpoint para cambiar el estado a 'atendido'
+      await api.post(`/api/consultas/${id}/atender`);
+      cargarConsultas();
+      setModal(null);
+    } catch (error) {
+      console.error("Error al marcar como atendido:", error);
+    }
   };
 
   const chip = (color, texto) => (
@@ -105,11 +96,11 @@ const ConsultasHoy = () => {
                   <td className="px-4 py-3 text-sm text-gray-900">{c.hora_llegada?.slice(0, 5)}</td>
                   <td className="px-4 py-3">
                     <div className="text-sm font-medium text-gray-900">
-                      {c.estudiantes?.nombre} {c.estudiantes?.apellido}
+                      {c.paciente_nombre} {c.paciente_apellido} {/* Nombres ajustados por API */}
                     </div>
-                    <div className="text-xs text-gray-500">CI: {c.estudiantes?.ci}</div>
+                    <div className="text-xs text-gray-500">CI: {c.paciente_ci}</div> {/* CI ajustado por API */}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{c.estudiantes?.carrera}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{c.paciente_carrera}</td> {/* Carrera ajustada */}
                   <td className="px-4 py-3 text-sm text-gray-700 truncate max-w-xs">{c.motivo}</td>
                   <td className="px-4 py-3">
                     {c.prioridad === "urgente"
@@ -125,7 +116,7 @@ const ConsultasHoy = () => {
                     {c.estado === "en_espera" && (
                       <Button
                         size="xs"
-                        onClick={() => setModal({ id: c.id, nombre: `${c.estudiantes?.nombre} ${c.estudiantes?.apellido}` })}
+                        onClick={() => setModal({ id: c.id, nombre: `${c.paciente_nombre} ${c.paciente_apellido}` })}
                       >
                         Atender
                       </Button>

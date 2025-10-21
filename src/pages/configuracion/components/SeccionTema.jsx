@@ -1,19 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../../lib/supabase";
-import Switch from "../../../components/ui/Switch"; // tu componente Switch
+import api from "../../../services/api";
+import Switch from "../../../components/ui/Switch";
 
 const SeccionTema = () => {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
     cargarTema();
+    // eslint-disable-next-line
   }, []);
 
   const cargarTema = async () => {
-    const { data } = await supabase.from("preferencias").select("dark_mode").single();
-    const valor = data?.dark_mode ?? false;
-    setDark(valor);
-    aplicarTema(valor);
+    try {
+      const res = await api.get("/api/preferencias");
+      const valor = res.data?.dark_mode ?? false;
+      setDark(valor);
+      aplicarTema(valor);
+    } catch (err) {
+      setDark(false);
+      aplicarTema(false);
+      console.error("Error cargando tema:", err);
+    }
   };
 
   const aplicarTema = (valor) => {
@@ -28,7 +35,11 @@ const SeccionTema = () => {
     const nuevo = !dark;
     setDark(nuevo);
     aplicarTema(nuevo);
-    await supabase.from("preferencias").upsert({ dark_mode: nuevo });
+    try {
+      await api.post("/api/preferencias", { dark_mode: nuevo });
+    } catch (err) {
+      console.error("Error guardando tema:", err);
+    }
   };
 
   return (

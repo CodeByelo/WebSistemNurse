@@ -71,9 +71,11 @@
     --radius-lg: 12px;
   }
   
+  /* Elimina la línea problemática:
   * {
     @apply border-border;
   }
+  */
   
   body {
     @apply bg-background text-foreground font-sans;

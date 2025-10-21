@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
-import Icon from "../../components/AppIcon";
+// src/pages/inventario/InventarioPage.jsx (o el nombre correcto)
+import React, { useState, useEffect } from "react";
+import api from "../../services/api"; // <-- IMPORTANTE: Usamos Axios
 import Button from "../../components/ui/Button";
+import Icon from "../../components/AppIcon";
 import InventarioTable from "./components/InventarioTable";
 import AgregarProductoModal from "./components/AgregarProductoModal";
 import EditarProductoModal from "./components/EditarProductoModal";
@@ -18,31 +19,38 @@ const InventarioPage = () => {
 
   const cargarInventario = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("inventario")
-      .select("*")
-      .order("nombre", { ascending: true });
-    if (!error) setProductos(data);
-    setLoading(false);
+    try {
+      const res = await api.get("/api/inventario");
+      setProductos(res.data || []);
+    } catch (error) {
+      console.error("Error cargando inventario:", error);
+      setProductos([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGuardar = async (nuevo) => {
     if (nuevo.id) {
-      // Editar
-      await supabase.from("inventario").update(nuevo).eq("id", nuevo.id);
+      // Editar: Asume que tu backend maneja PUT o POST con ID
+      await api.post(`/api/inventario/${nuevo.id}`, nuevo); 
     } else {
       // Crear
-      await supabase.from("inventario").insert(nuevo);
+      await api.post("/api/inventario", nuevo);
     }
-    cargarInventario();
+    cargarInventario(); // Refrescar lista
     setModalAgregar(false);
     setModalEditar(null);
   };
 
   const handleEliminar = async (id) => {
     if (!confirm("¿Eliminar producto?")) return;
-    await supabase.from("inventario").delete().eq("id", id);
-    cargarInventario();
+    try {
+      await api.delete(`/api/inventario/${id}`);
+      cargarInventario();
+    } catch (error) {
+      console.error("Error eliminando producto:", error);
+    }
   };
 
   return (
@@ -66,7 +74,7 @@ const InventarioPage = () => {
         onEliminar={handleEliminar}
       />
 
-      {/* Modales */}
+      {/* Modales - Asegúrate de que los componentes internos usen la API en lugar de supabase */}
       {modalAgregar && (
         <AgregarProductoModal
           abierto

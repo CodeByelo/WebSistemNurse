@@ -1,28 +1,52 @@
+// src/pages/configuracion/components/SeccionExportar.jsx
 import React from "react";
-import { supabase } from "../../../lib/supabase";
+import api from "../../../services/api";
 import Button from "../../../components/ui/Button";
 
 const SeccionExportar = () => {
   const exportarCSV = async () => {
-    const { data } = await supabase.from("expedientes").select("*");
-    if (!data) return;
-    const csv = [
-      ["ID", "Estudiante ID", "Motivo", "Diagnóstico", "Fecha"],
-      ...data.map((d) => [d.id, d.estudiante_id, d.motivo, d.diagnostico, d.created_at]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `expedientes_${new Date().toISOString().split("T")[0]}.csv`;
-    link.click();
+    try {
+      // 1) Traer expedientes desde tu API
+      const res = await api.get("/api/expedientes");
+      const data = res.data;
+      if (!data || data.length === 0) return;
+
+      // 2) Construir CSV
+      const header = ["ID","Estudiante ID","Motivo","Diagnóstico","Fecha"];
+      const rows = data.map(d => [
+        d.id,
+        d.estudiante_id,
+        JSON.stringify(d.motivo),
+        JSON.stringify(d.diagnostico),
+        d.created_at
+      ]);
+      const csvContent = [header, ...rows]
+        .map(r => r.join(","))
+        .join("\n");
+
+      // 3) Descargar
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `expedientes_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error exportando CSV:", err);
+    }
   };
 
   const logoutGlobal = async () => {
-    await supabase.auth.signOut({ scope: "global" });
-    window.location.replace("/login");
+    try {
+      // Llama a tu endpoint de logout global (implementa /api/logout-all en el back)
+      await api.post("/api/logout-all");
+    } catch (err) {
+      console.error("Error cerrando sesiones:", err);
+    } finally {
+      // Redirige al login
+      window.location.href = "/login";
+    }
   };
 
   return (
@@ -30,7 +54,9 @@ const SeccionExportar = () => {
       <h2 className="text-lg font-semibold mb-3">Exportar y seguridad</h2>
       <div className="flex flex-wrap gap-3">
         <Button onClick={exportarCSV}>Descargar expedientes CSV</Button>
-        <Button variant="outline" onClick={logoutGlobal}>Cerrar sesión en todos los dispositivos</Button>
+        <Button variant="outline" onClick={logoutGlobal}>
+          Cerrar sesión en todos los dispositivos
+        </Button>
       </div>
     </div>
   );

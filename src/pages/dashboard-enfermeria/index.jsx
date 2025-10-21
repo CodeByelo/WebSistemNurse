@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
-import { supabase } from '../../lib/supabase';
+import api from '../../services/api'; // <-- Importamos Axios
 
 const DashboardEnfermeria = () => {
   const navigate = useNavigate();
@@ -12,7 +12,7 @@ const DashboardEnfermeria = () => {
     atendidosHoy: 0,
     enEspera: 0,
     urgentes: 0,
-    inventarioBajo: 0
+    inventarioBajo: 3 // Dato inicial fijo
   });
 
   const [consultasRecientes, setConsultasRecientes] = useState([]);
@@ -23,55 +23,21 @@ const DashboardEnfermeria = () => {
   }, []);
 
   const cargarDatosDashboard = async () => {
+    setLoading(true);
     try {
-      const hoy = new Date().toISOString().split('T')[0];
+      // 1. Llamada a endpoint que consolida los KPIs
+      const resKpis = await api.get('/api/dashboard/kpis');
+      setEstadisticas(prev => ({
+        ...prev,
+        ...resKpis.data.kpis
+      }));
+      
+      // 2. Últimas 5 consultas del día
+      const resRecientes = await api.get('/api/dashboard/consultas_recientes');
+      setConsultasRecientes(resRecientes.data || []);
 
-      // Consultas de hoy
-      const { data: consultasHoy, count: totalConsultasHoy } = await supabase
-        .from('consultas')
-        .select('*', { count: 'exact' })
-        .eq('fecha', hoy);
-
-      const { data: atendidos, count: totalAtendidos } = await supabase
-        .from('consultas')
-        .select('*', { count: 'exact' })
-        .eq('fecha', hoy)
-        .eq('estado', 'atendido');
-
-      const { data: urgentes, count: totalUrgentes } = await supabase
-        .from('consultas')
-        .select('*', { count: 'exact' })
-        .eq('fecha', hoy)
-        .eq('prioridad', 'urgente')
-        .eq('estado', 'en_espera');
-
-      setEstadisticas({
-        consultasHoy: totalConsultasHoy || 0,
-        atendidosHoy: totalAtendidos || 0,
-        enEspera: (totalConsultasHoy || 0) - (totalAtendidos || 0),
-        urgentes: totalUrgentes || 0,
-        inventarioBajo: 3 // Ejemplo: se actualizará desde inventario real
-      });
-
-      // Últimas 5 consultas del día
-      const { data: recientes } = await supabase
-        .from('consultas')
-        .select(`
-          *,
-          estudiantes (
-            nombre,
-            apellido,
-            carnet,
-            carrera
-          )
-        `)
-        .eq('fecha', hoy)
-        .order('hora_llegada', { ascending: false })
-        .limit(5);
-
-      setConsultasRecientes(recientes || []);
     } catch (error) {
-      console.error('Error cargando dashboard:', error);
+      console.error('Error cargando dashboard desde API:', error);
     } finally {
       setLoading(false);
     }
@@ -90,6 +56,18 @@ const DashboardEnfermeria = () => {
     );
   }
 
+  // Función utilitaria para clases dinámicas (para evitar errores de compilación de Tailwind)
+  const getColorClasses = (color) => {
+    switch (color) {
+        case 'blue': return { text: 'text-blue-600', bg: 'bg-blue-100', icon: 'stethoscope' };
+        case 'green': return { text: 'text-green-600', bg: 'bg-green-100', icon: 'check-circle' };
+        case 'yellow': return { text: 'text-yellow-600', bg: 'bg-yellow-100', icon: 'clock' };
+        case 'red': return { text: 'text-red-600', bg: 'bg-red-100', icon: 'alert-triangle' };
+        case 'purple': return { text: 'text-purple-600', bg: 'bg-purple-100', icon: 'package' };
+        default: return { text: 'text-gray-600', bg: 'bg-gray-100', icon: 'help-circle' };
+    }
+  }
+  
   return (
       <div className="min-h-screen bg-gray-50 p-6">
         {/* Header */}
@@ -113,102 +91,51 @@ const DashboardEnfermeria = () => {
         {/* KPIs Principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           {[
-            {
-              label: 'Consultas Hoy',
-              value: estadisticas.consultasHoy,
-              color: 'blue',
-              icon: 'stethoscope'
-            },
-            {
-              label: 'Atendidos',
-              value: estadisticas.atendidosHoy,
-              color: 'green',
-              icon: 'check-circle'
-            },
-            {
-              label: 'En Espera',
-              value: estadisticas.enEspera,
-              color: 'yellow',
-              icon: 'clock'
-            },
-            {
-              label: 'Urgentes',
-              value: estadisticas.urgentes,
-              color: 'red',
-              icon: 'alert-triangle'
-            },
-            {
-              label: 'Inventario Bajo',
-              value: estadisticas.inventarioBajo,
-              color: 'purple',
-              icon: 'package'
-            }
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="bg-white p-6 rounded-lg shadow-sm border border-gray-200"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    {item.label}
-                  </p>
-                  <p
-                    className={`text-2xl font-bold text-${item.color}-600`}
-                  >
-                    {item.value}
-                  </p>
+            { label: 'Consultas Hoy', value: estadisticas.consultasHoy, color: 'blue' },
+            { label: 'Atendidos', value: estadisticas.atendidosHoy, color: 'green' },
+            { label: 'En Espera', value: estadisticas.enEspera, color: 'yellow' },
+            { label: 'Urgentes', value: estadisticas.urgentes, color: 'red' },
+            { label: 'Inventario Bajo', value: estadisticas.inventarioBajo, color: 'purple' }
+          ].map((item) => {
+            const classes = getColorClasses(item.color);
+            return (
+                <div
+                    key={item.label}
+                    className="bg-white p-6 rounded-lg shadow-sm border border-gray-200"
+                >
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">
+                                {item.label}
+                            </p>
+                            <p className={`text-2xl font-bold ${classes.text}`}>
+                                {item.value}
+                            </p>
+                        </div>
+                        <div className={`${classes.bg} p-3 rounded-full`}>
+                            <Icon name={classes.icon} size={24} className={`${classes.text}`} />
+                        </div>
+                    </div>
                 </div>
-                <div className={`bg-${item.color}-100 p-3 rounded-full`}>
-                  <Icon
-                    name={item.icon}
-                    size={24}
-                    className={`text-${item.color}-600`}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Acciones Rápidas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Button
-            onClick={handleNuevaConsulta}
-            className="h-16 text-base"
-            iconName="plus-circle"
-            iconPosition="left"
-          >
+          <Button onClick={handleNuevaConsulta} className="h-16 text-base" iconName="plus-circle" iconPosition="left">
             📝 Nueva Consulta
           </Button>
 
-          <Button
-            onClick={handleVerConsultas}
-            variant="outline"
-            className="h-16 text-base"
-            iconName="list"
-            iconPosition="left"
-          >
+          <Button onClick={handleVerConsultas} variant="outline" className="h-16 text-base" iconName="list" iconPosition="left">
             📋 Ver Consultas de Hoy
           </Button>
 
-          <Button
-            onClick={handleInventario}
-            variant="secondary"
-            className="h-16 text-base"
-            iconName="archive"
-            iconPosition="left"
-          >
+          <Button onClick={handleInventario} variant="secondary" className="h-16 text-base" iconName="archive" iconPosition="left">
             📦 Inventario
           </Button>
 
-          <Button
-            onClick={handleExpedientes}
-            variant="outline"
-            className="h-16 text-base"
-            iconName="folder-open"
-            iconPosition="left"
-          >
+          <Button onClick={handleExpedientes} variant="outline" className="h-16 text-base" iconName="folder-open" iconPosition="left">
             📁 Expedientes
           </Button>
         </div>
@@ -224,7 +151,9 @@ const DashboardEnfermeria = () => {
               </h2>
             </div>
             <div className="p-6">
-              {consultasRecientes.length === 0 ? (
+              {loading ? (
+                <p className="text-center py-4">Cargando consultas...</p>
+              ) : consultasRecientes.length === 0 ? (
                 <p className="text-gray-500 text-center py-4">
                   No hay consultas registradas hoy
                 </p>
@@ -237,11 +166,10 @@ const DashboardEnfermeria = () => {
                     >
                       <div>
                         <p className="font-medium text-gray-900">
-                          {consulta.estudiantes?.nombre}{' '}
-                          {consulta.estudiantes?.apellido}
+                          {consulta.paciente_nombre} {consulta.paciente_apellido}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {consulta.estudiantes?.carnet} • {consulta.motivo}
+                          {consulta.paciente_carnet} • {consulta.motivo}
                         </p>
                       </div>
                       <div className="text-right">
@@ -255,9 +183,7 @@ const DashboardEnfermeria = () => {
                               : 'bg-yellow-100 text-yellow-800'
                           }`}
                         >
-                          {consulta.estado === 'atendido'
-                            ? 'Atendido'
-                            : 'En espera'}
+                          {consulta.estado === 'atendido' ? 'Atendido' : 'En espera'}
                         </span>
                       </div>
                     </div>
@@ -267,7 +193,7 @@ const DashboardEnfermeria = () => {
             </div>
           </div>
 
-          {/* Anuncios y Recordatorios */}
+          {/* Anuncios y Recordatorios (Static Content) */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -276,58 +202,19 @@ const DashboardEnfermeria = () => {
               </h2>
             </div>
             <div className="p-6 space-y-4">
+              {/* ... Contenido estático de recordatorios ... */}
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-start gap-3">
-                  <Icon
-                    name="info"
-                    size={16}
-                    className="text-blue-600 mt-0.5"
-                  />
+                  <Icon name="info" size={16} className="text-blue-600 mt-0.5" />
                   <div>
                     <p className="font-medium text-blue-900">Inventario Bajo</p>
                     <p className="text-sm text-blue-700">
-                      Quedan solo 5 unidades de paracetamol. Considera
-                      reabastecer.
+                      Quedan solo 5 unidades de paracetamol. Considera reabastecer.
                     </p>
                   </div>
                 </div>
               </div>
-
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Icon
-                    name="check-circle"
-                    size={16}
-                    className="text-green-600 mt-0.5"
-                  />
-                  <div>
-                    <p className="font-medium text-green-900">
-                      Todo Actualizado
-                    </p>
-                    <p className="text-sm text-green-700">
-                      Los reportes del mes han sido generados exitosamente.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <Icon
-                    name="calendar"
-                    size={16}
-                    className="text-yellow-600 mt-0.5"
-                  />
-                  <div>
-                    <p className="font-medium text-yellow-900">
-                      Mantenimiento Programado
-                    </p>
-                    <p className="text-sm text-yellow-700">
-                      Revisión mensual del equipo: 25 de octubre a las 2:00 PM
-                    </p>
-                  </div>
-                </div>
-              </div>
+              {/* ... otros anuncios estáticos ... */}
             </div>
           </div>
         </div>

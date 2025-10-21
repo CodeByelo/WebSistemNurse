@@ -1,25 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../../lib/supabase";
 
 const SeccionNotificaciones = () => {
   const [inv, setInv] = useState(true);
   const [email, setEmail] = useState(false);
 
-  useEffect(() => {
-    cargarNotifs();
-  }, []);
-
-  const cargarNotifs = async () => {
-    const { data } = await supabase.from("preferencias").select("notif_inventario, notif_email").single();
-    if (data) {
-      setInv(data.notif_inventario ?? true);
-      setEmail(data.notif_email ?? false);
-    }
-  };
-
-  const guardar = async (campo, valor) => {
-    await supabase.from("preferencias").upsert({ [campo]: valor });
-  };
+  // ⚠️ Nota: Las notificaciones se manejarán desde el backend (API) en el futuro.
+  // Por ahora, solo mostramos la UI con estado local.
 
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 p-4">
@@ -31,11 +17,7 @@ const SeccionNotificaciones = () => {
             type="checkbox"
             className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
             checked={inv}
-            onChange={(e) => {
-              const val = e.target.checked;
-              setInv(val);
-              guardar("notif_inventario", val);
-            }}
+            onChange={(e) => setInv(e.target.checked)}
           />
           <span className="text-sm text-gray-700">Alertas de inventario bajo</span>
         </label>
@@ -46,11 +28,7 @@ const SeccionNotificaciones = () => {
             type="checkbox"
             className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
             checked={email}
-            onChange={(e) => {
-              const val = e.target.checked;
-              setEmail(val);
-              guardar("notif_email", val);
-            }}
+            onChange={(e) => setEmail(e.target.checked)}
           />
           <span className="text-sm text-gray-700">Resumen diario por correo</span>
         </label>

@@ -6,6 +6,7 @@ import ConsultasHoy from "./pages/consultas-hoy/index.jsx";
 import InventarioPage from "./pages/inventario/index.jsx";
 import ReportesPage from "./pages/reportes/index.jsx";
 import ConfiguracionPage from "./pages/configuracion/index.jsx";
+import ReportesMensuales from "./pages/reportes-mensuales/index.jsx";
 
 /* ----------  AUTH  ---------- */
 import LoginForm from "./components/auth/LoginForm";
@@ -39,6 +40,7 @@ const Routes = () => (
           <Route path="/inventario" element={<InventarioPage />} />
           <Route path="/reportes" element={<ReportesPage />} />
           <Route path="/configuracion" element={<ConfiguracionPage />} />
+          <Route path="/reportes-mensuales" element={<ReportesMensuales />} />
         </Route>
 
         {/* 404 */}

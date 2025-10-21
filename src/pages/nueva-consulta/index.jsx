@@ -33,7 +33,6 @@ const NuevaConsulta = () => {
   };
 
   const handleSiguiente = () => {
-    // ✅ Validar selección de tipo antes de avanzar
     if (paso === 1 && formData.tipoUsuario === '') {
       alert('⚠️ Por favor selecciona un tipo de usuario antes de continuar.');
       return;
@@ -45,11 +44,40 @@ const NuevaConsulta = () => {
     if (paso > 1) setPaso(prev => prev - 1);
   };
 
-  const handleSubmit = (e) => {
+  // --- FUNCIÓN CORREGIDA (URL SIN ERROR) ---
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('📋 Consulta registrada:', formData);
-    alert('✅ Consulta registrada con éxito');
+    try {
+      // --- CAMBIO AQUÍ: URL CORRECTA ---
+      const respuesta = await fetch('http://localhost:3001/api/pacientes', {
+      // --- FIN CAMBIO ---
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          email: formData.email,
+          telefono: formData.telefono,
+          carnet: formData.carnet,
+          carrera: formData.carrera,
+        })
+      });
+
+      const resultado = await respuesta.json();
+      if (respuesta.ok) {
+        alert('✅ Consulta y paciente registrados con éxito!');
+        console.log('Datos guardados en Neon:', resultado.paciente);
+      } else {
+        alert('❌ Error: ' + resultado.error);
+      }
+    } catch (error) {
+      alert('❌ Error conectando con el servidor: ' + error.message);
+      console.error('Error:', error);
+    }
   };
+  // --- FIN DE LA FUNCIÓN CORREGIDA ---
 
   const renderCamposEspecificos = () => {
     const inputStyle =
@@ -150,11 +178,10 @@ const NuevaConsulta = () => {
 
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-blue-50 p-6">
         <div className="max-w-4xl mx-auto">
-          {/* HEADER */}
           <div className="text-center mb-10 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-blue-600 opacity-10 blur-3xl"></div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 via-blue-600 to-purple-600 bg-clip-text text-transparent animate-pulse">
-              🏥 Nueva Consulta
+            <h1 className="text-4xl font-bold text-gray-900">
+              Nueva Consulta
             </h1>
             <p className="text-gray-600 mt-2 text-lg">
               Sistema de Atención Médica ISUM
@@ -165,7 +192,6 @@ const NuevaConsulta = () => {
             </div>
           </div>
 
-          {/* PROGRESS BAR */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               {[1, 2, 3, 4].map((num) => (
@@ -173,7 +199,7 @@ const NuevaConsulta = () => {
                   <div
                     className={`flex items-center justify-center w-12 h-12 rounded-full text-white font-bold text-lg transition-all duration-500 ${
                       paso >= num
-                        ? 'bg-gradient-to-r from-orange-500 to-blue-600 shadow-lg shadow-orange-500/50'
+                        ? 'bg-blue-600 shadow-lg shadow-blue-500/50'
                         : 'bg-gray-200 text-gray-500'
                     }`}
                   >
@@ -191,7 +217,7 @@ const NuevaConsulta = () => {
             </div>
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-orange-500 to-blue-600 rounded-full transition-all duration-500"
+                className="h-full bg-blue-600 rounded-full transition-all duration-500"
                 style={{ width: `${(paso / 4) * 100}%` }}
               ></div>
             </div>
@@ -204,11 +230,10 @@ const NuevaConsulta = () => {
             </div>
           </div>
 
-          {/* PASO 1 */}
           {paso === 1 && (
             <div className="backdrop-blur-lg bg-white/30 border border-white/20 rounded-3xl p-8 shadow-2xl">
               <div className="mb-6 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-blue-600 rounded-xl flex items-center justify-center glow-effect">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center glow-effect">
                   <Icon name="user" size={24} className="text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">
@@ -260,11 +285,10 @@ const NuevaConsulta = () => {
             </div>
           )}
 
-          {/* PASO 2 */}
           {paso === 2 && (
             <div className="backdrop-blur-lg bg-white/30 border border-white/20 rounded-3xl p-8 shadow-2xl">
               <div className="mb-6 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center glow-effect">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center glow-effect">
                   <Icon name="id-card" size={24} className="text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">
@@ -275,11 +299,10 @@ const NuevaConsulta = () => {
             </div>
           )}
 
-          {/* PASO 3 */}
           {paso === 3 && (
             <div className="backdrop-blur-lg bg-white/30 border border-white/20 rounded-3xl p-8 shadow-2xl">
               <div className="mb-6 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-600 rounded-xl flex items-center justify-center glow-effect">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center glow-effect">
                   <Icon name="stethoscope" size={24} className="text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">
@@ -325,11 +348,10 @@ const NuevaConsulta = () => {
             </div>
           )}
 
-          {/* PASO 4 */}
           {paso === 4 && (
             <div className="backdrop-blur-lg bg-white/30 border border-white/20 rounded-3xl p-8 shadow-2xl">
               <div className="mb-6 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center glow-effect">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center glow-effect">
                   <Icon name="pill" size={24} className="text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">
@@ -362,7 +384,6 @@ const NuevaConsulta = () => {
             </div>
           )}
 
-          {/* BOTONES */}
           <div className="flex justify-between mt-10">
             <button
               onClick={handleAnterior}
@@ -377,7 +398,7 @@ const NuevaConsulta = () => {
 
             <button
               onClick={paso < 4 ? handleSiguiente : handleSubmit}
-              className="group relative px-8 py-3 bg-gradient-to-r from-orange-500 to-blue-600 rounded-xl text-white font-bold hover:shadow-lg hover:shadow-orange-500/50 transform hover:scale-105 transition-all duration-300"
+              className="group relative px-8 py-3 bg-blue-600 rounded-xl text-white font-bold hover:shadow-lg hover:shadow-blue-500/50 hover:bg-blue-700 transform hover:scale-105 transition-all duration-300"
             >
               <span className="flex items-center gap-2">
                 {paso < 4 ? 'Siguiente' : 'Registrar Consulta'}

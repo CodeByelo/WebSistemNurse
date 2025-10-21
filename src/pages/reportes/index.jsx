@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import api from "../../services/api";
 import FiltrosReporte from "./components/FiltrosReporte";
 import TablaReporte from "./components/TablaReporte";
 // import ExportarPDF from "./components/ExportarPDF"; // opcional
@@ -22,9 +22,19 @@ const ReportesPage = () => {
 
   const generarReporte = async () => {
     setLoading(true);
-    let query = supabase.from(tipo).select("*").gte("created_at", `${fechaInicio}T00:00:00`).lte("created_at", `${fechaFin}T23:59:59`);
-    const { data, error } = await query;
-    if (!error) setDatos(data);
+    try {
+      let endpoint = tipo === "consultas" ? "/api/consultas" : "/api/inventario";
+      const res = await api.get(endpoint, {
+        params: {
+          desde: `${fechaInicio}T00:00:00`,
+          hasta: `${fechaFin}T23:59:59`
+        }
+      });
+      setDatos(res.data || []);
+    } catch (error) {
+      setDatos([]);
+      console.error("Error generando reporte:", error);
+    }
     setLoading(false);
   };
 

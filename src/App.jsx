@@ -1,15 +1,18 @@
+// src/App.jsx
 import React, { useEffect } from 'react';
 import Routes from './Routes';
 import './styles/tailwind.css';
-import { supabase } from './lib/supabase';
+import api from './services/api'; // ✅ Ya existe
 
 const App = () => {
   useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase.from('patients').select('*');
-      console.log('✅ Pacientes reales:', data);
-      console.log('❌ Error:', error);
-    })();
+    api.get('/pacientes')
+      .then(({ data }) => {
+        console.log('✅ Pacientes reales:', data);
+      })
+      .catch(err => {
+        console.error('❌ Error cargando pacientes:', err.message);
+      });
   }, []);
 
   return <Routes />;

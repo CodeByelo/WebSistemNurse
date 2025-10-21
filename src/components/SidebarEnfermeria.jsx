@@ -1,4 +1,3 @@
-// src/components/SidebarEnfermeria.jsx
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Icon from './AppIcon';
@@ -14,6 +13,7 @@ const SidebarEnfermeria = () => {
     { label: '📅 Consultas Hoy', path: '/consultas-hoy', icon: 'calendar' },
     { label: '💊 Inventario', path: '/inventario', icon: 'package' },
     { label: '📊 Reportes', path: '/reportes', icon: 'bar-chart-3' },
+    { label: '📈 Reportes Mensuales', path: '/reportes-mensuales', icon: 'bar-chart' }, // ⭐ ¡NUEVO!
     { label: '⚙️ Configuración', path: '/configuracion', icon: 'settings' },
   ];
 

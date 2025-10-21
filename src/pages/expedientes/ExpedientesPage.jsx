@@ -1,9 +1,8 @@
-// src/pages/expedientes/index.jsx
 import React, { useState, useEffect, useRef } from "react";
 import Button from "../../components/ui/Button";
 import Icon from "../../components/AppIcon";
 import ExpedienteModal from "./components/ExpedienteModal";
-import { supabase } from "../../lib/supabase";
+import api from "../../services/api";
 
 const FILAS_POR_PAGINA = 10;
 
@@ -19,7 +18,6 @@ const ExpedientesPage = () => {
   const [estudianteSeleccionado, setEstudianteSeleccionado] = useState(null);
   const debounceRef = useRef(null);
 
-  // Debounce manual: actualiza consultaActiva 300ms después de escribir
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -40,42 +38,26 @@ const ExpedientesPage = () => {
   const cargarEstudiantesPaginados = async () => {
     setCargando(true);
     try {
-      // Construir filtro de búsqueda
       const q = consultaActiva;
-      const rangoInicio = (pagina - 1) * FILAS_POR_PAGINA;
-      const rangoFin = rangoInicio + FILAS_POR_PAGINA - 1;
-
-      let query = supabase.from("estudiantes").select("*", { count: "exact" });
-
-      if (q && q.length > 0) {
-        // Buscar en ci, nombre o apellido (ilike)
-        // Usamos or con la sintaxis de supabase
-        const filtroOr = `ci.ilike.%${q}%,nombre.ilike.%${q}%,apellido.ilike.%${q}%`;
-        query = query.or(filtroOr);
-      }
-
-      // Orden por apellido para consistencia
-      const respuesta = await query.range(rangoInicio, rangoFin).order("apellido", { ascending: true });
-
-      if (respuesta.error) throw respuesta.error;
-
-      const estudiantesData = respuesta.data || [];
-      const totalRegistros = respuesta.count || 0;
-      const paginasCalc = Math.max(1, Math.ceil(totalRegistros / FILAS_POR_PAGINA));
+      const res = await api.get("/api/estudiantes", {
+        params: {
+          busqueda: q,
+          pagina,
+          filas: FILAS_POR_PAGINA
+        }
+      });
+      const { estudiantes: estudiantesData, totalPaginas: paginasCalc } = res.data;
       setTotalPaginas(paginasCalc);
 
-      // Obtener última consulta (expediente) para cada estudiante (puede ser paralelo)
+      // Obtener última consulta para cada estudiante
       const estudiantesConUltima = await Promise.all(
         estudiantesData.map(async (est) => {
           // Traer el último expediente del estudiante
-          const { data: expedientesData } = await supabase
-            .from("expedientes")
-            .select("*")
-            .eq("estudiante_id", est.id)
-            .order("created_at", { ascending: false })
-            .limit(1);
-
-          const ultima = expedientesData && expedientesData.length > 0 ? expedientesData[0] : null;
+          const resExp = await api.get("/api/expedientes", {
+            params: { estudiante_id: est.id, limit: 1 }
+          });
+          const expedientesData = resExp.data || [];
+          const ultima = expedientesData.length > 0 ? expedientesData[0] : null;
           return {
             ...est,
             ultimaConsulta: ultima ? ultima.created_at : null,
@@ -86,7 +68,6 @@ const ExpedientesPage = () => {
 
       setEstudiantes(estudiantesConUltima);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Error cargando estudiantes:", error);
       setEstudiantes([]);
       setTotalPaginas(1);
@@ -98,31 +79,22 @@ const ExpedientesPage = () => {
   const abrirExpediente = async (estudiante) => {
     setCargando(true);
     try {
-      // Si estudiante tiene ultimaExpedienteId, traer expediente; si no, intentar traer el último
       let expediente = null;
       if (estudiante.ultimaExpedienteId) {
-        const { data, error } = await supabase
-          .from("expedientes")
-          .select("*")
-          .eq("id", estudiante.ultimaExpedienteId)
-          .single();
-        if (error) throw error;
-        expediente = data;
+        const res = await api.get(`/api/expedientes/${estudiante.ultimaExpedienteId}`);
+        expediente = res.data;
       } else {
-        const { data: data2 } = await supabase
-          .from("expedientes")
-          .select("*")
-          .eq("estudiante_id", estudiante.id)
-          .order("created_at", { ascending: false })
-          .limit(1);
-        expediente = data2 && data2.length > 0 ? data2[0] : null;
+        const res = await api.get("/api/expedientes", {
+          params: { estudiante_id: estudiante.id, limit: 1 }
+        });
+        const data2 = res.data || [];
+        expediente = data2.length > 0 ? data2[0] : null;
       }
 
       setEstudianteSeleccionado(estudiante);
       setExpedienteSeleccionado(expediente);
       setModalAbierto(true);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Error al abrir expediente:", error);
       setEstudianteSeleccionado(estudiante);
       setExpedienteSeleccionado(null);
