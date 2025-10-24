@@ -1,18 +1,16 @@
+
 require('dotenv').config();
 const express = require('express');
-const { Pool } = require('pg');
 const cors = require('cors');
 
-const app = express();               // <-- debe estar definido ANTES de usar app
+// Centralizamos la conexión a Postgres/Neon en api/db.js
+const pool = require('./db');
+
+const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
 
 app.get('/', async (req, res) => {
   try {
